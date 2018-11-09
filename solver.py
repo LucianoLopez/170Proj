@@ -29,8 +29,8 @@ def parse_input(folder_name):
             size_buses - an integer representing the number of students that can fit on a bus
             constraints - a list where each element is a list vertices which represents a single rowdy group
     '''
-    graph = nx.read_gml(folder_name + "/graph.gml")
-    parameters = open(folder_name + "/parameters.txt")
+    graph = nx.read_gml(folder_name + "/small_graph.gml")
+    parameters = open(folder_name + "/smallparameters.txt")
     num_buses = int(parameters.readline())
     size_bus = int(parameters.readline())
     constraints = []

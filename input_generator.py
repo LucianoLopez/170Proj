@@ -52,7 +52,7 @@ Randomly generate a length amount of sets of rowdylists
 """
 def generate_rowdylist(length):
 
-	file = open('./input/'+size_name+'parameters.txt', "w")
+	file = open('./input/'+size_name+'_parameters.txt', "w")
 	file.write("4 \n") ##number of buses
 	file.write(str(size //4)+"\n") ##size of buses
 	for i in range(length):
