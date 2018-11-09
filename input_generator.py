@@ -6,6 +6,11 @@ import matplotlib.pyplot as plt
 size = 10
 size_name = "small"
 length = 15
+"""
+###################################################
+#RECEIVES INPUT OF FORM: GRAPH_SIZE ROWDYLIST_SIZE#
+###################################################
+"""
 
 """Sanitize Inputs"""
 if len(sys.argv) > 3:
