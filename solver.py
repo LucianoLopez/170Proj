@@ -30,7 +30,7 @@ def parse_input(folder_name):
             constraints - a list where each element is a list vertices which represents a single rowdy group
     '''
     graph = nx.read_gml(folder_name + "/small_graph.gml")
-    parameters = open(folder_name + "/smallparameters.txt")
+    parameters = open(folder_name + "/small_parameters.txt")
     num_buses = int(parameters.readline())
     size_bus = int(parameters.readline())
     constraints = []
@@ -42,10 +42,9 @@ def parse_input(folder_name):
 
     return graph, num_buses, size_bus, constraints
 
-def solve():
+def solve(graph, num_buses, size_bus, constraints):
     #TODO: Write this method as you like. We'd recommend changing the arguments here as well
-    pass
-
+    print(constraints)
 def main():
     '''
         Main method which iterates over all inputs and calls `solve` on each.
