@@ -14,7 +14,7 @@ length = 15
 
 """Sanitize Inputs"""
 if len(sys.argv) > 3:
-	print("Invalid Input... Input should be an integer")
+	print("Invalid Input... Input should be two integers")
 	exit()
 
 try:

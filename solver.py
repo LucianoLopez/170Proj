@@ -42,9 +42,30 @@ def parse_input(folder_name):
 
     return graph, num_buses, size_bus, constraints
 
+
+def fix_collision(constraints, numFriendsDic, busDictionary):
+
+	for constraint in constraints:
+		enforced = False
+		curBus = busDictionary[constraints[0]]
+		for person in constraint:
+			if busDictionary[person] is not curBus:
+				enforced = True
+				break
+		if not enforced:
+
+
+def fix_constraint(constraint
+				   , )
+
+
 def solve(graph, num_buses, size_bus, constraints):
     #TODO: Write this method as you like. We'd recommend changing the arguments here as well
-    print(constraints)
+	buses = []
+	for _ in range(num_buses):
+		buses.append([])
+
+
 def main():
     '''
         Main method which iterates over all inputs and calls `solve` on each.
