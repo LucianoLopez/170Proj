@@ -1,12 +1,14 @@
 import networkx as nx
 import os
 
+from gurobipy import *
+
 ###########################################
 # Change this variable to the path to 
 # the folder containing all three input
 # size category folders
 ###########################################
-path_to_inputs = "./all_inputs"
+path_to_inputs = "./inputs"
 
 ###########################################
 # Change this variable if you want
@@ -43,27 +45,92 @@ def parse_input(folder_name):
     return graph, num_buses, size_bus, constraints
 
 
-def fix_collision(constraints, numFriendsDic, busDictionary):
+def create_variables(graph):
 
+	variableEdgeAmt = {}
+	variables = list(graph.nodes)
+
+	for variable in variables:
+		variableEdgeAmt[variable] = graph.adj[variable]
+
+	return variableEdgeAmt
+
+def create_model(graph, buses, bus_size, constraints, variablesAdjDic):
+	indicator_variables = {}
+	integer_variables = {}
+	m = Model("")
+	##Creates the indicator variable for the model
+	for i in variablesAdjDic:
+		for bus in buses:
+			indicator_variables[(i, bus)] = m.addVar(vtype=GRB.BINARY, name='i' + str(bus)+ i)
+	# ##Creates the integer variables
+	# for i in variablesAdjDic:
+	# 	integer_variables[i] = m.addVar(vtype=GRB.INTEGER, name=i)
+
+	##Create optimization func TODO
+
+	m.setObjective(quicksum(float(quicksum(indicator_variables[i] for i in variablesAdjDic[variable]))/float(len(variablesAdjDic[variable]))\
+							for variable in variablesAdjDic), GRB.MAXIMIZE)
+
+	##Create the constraints
+
+	num = 0
 	for constraint in constraints:
-		enforced = False
-		curBus = busDictionary[constraints[0]]
-		for person in constraint:
-			if busDictionary[person] is not curBus:
-				enforced = True
-				break
-		if not enforced:
+		num +=1
+		for bus in buses:
+			lst = []
+			for variable in constraint:
+				lst.append(indicator_variables[(variable, bus)])
+			m.addConstr(quicksum(lst[i] for i in range(len(lst))) < len(constraint), "c"+str(num)+str(bus)) #TODO: ADD ACTUAL CONSTRAINTS
+
+	##enforces that for all variables, they are only present in one bus
+
+	for variable in variablesAdjDic:
+		lst = []
+		for bus in buses:
+			lst.append(indicator_variables[(i,bus)])
+		m.addConstr(quicksum(lst[i] for i in range(len(lst))) == 1, "c"+str(variable))
+
+	for bus in buses:
+		lst = []
+		for variable in variablesAdjDic:
+			lst.append(indicator_variables[(variable, bus)])
+		m.addConstr(quicksum(lst[i] for i in range(len(lst))) <= bus_size, 'b' + str(bus))
 
 
-def fix_constraint(constraint
-				   , )
+
+	return m, indicator_variables
+
+
+
+
+# def fix_collision(constraints, numFriendsDic, busDictionary):
+#
+# 	for constraint in constraints:
+# 		enforced = False
+# 		curBus = busDictionary[constraints[0]]
+# 		for person in constraint:
+# 			if busDictionary[person] is not curBus:
+# 				enforced = True
+# 				break
+# 		if not enforced:
+
 
 
 def solve(graph, num_buses, size_bus, constraints):
     #TODO: Write this method as you like. We'd recommend changing the arguments here as well
-	buses = []
-	for _ in range(num_buses):
-		buses.append([])
+
+	variablesAdjDic = create_variables(graph)
+	model, indicator_variables = create_model(graph, num_buses, size_bus, constraints, variablesAdjDic)
+	model.optimize()
+	solution = []
+	for bus in range(len(num_buses)):
+		solution.append([])
+
+	for variable_key, variable_item in indicator_variables.items():
+		if int(variable_item.x) == 1:
+			solution[variable_key[1]].append(variable_key[0])
+	return solution
 
 
 def main():
