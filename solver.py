@@ -8,7 +8,7 @@ from gurobipy import *
 # the folder containing all three input
 # size category folders
 ###########################################
-path_to_inputs = "./inputs"
+path_to_inputs = "./all_inputs"
 
 ###########################################
 # Change this variable if you want
@@ -51,51 +51,54 @@ def create_variables(graph):
 	variables = list(graph.nodes)
 
 	for variable in variables:
-		variableEdgeAmt[variable] = graph.adj[variable]
+		variableEdgeAmt[variable] = list(graph.adj[variable])
 
+	# print(variableEdgeAmt)
 	return variableEdgeAmt
 
 def create_model(graph, buses, bus_size, constraints, variablesAdjDic):
 	indicator_variables = {}
-	integer_variables = {}
 	m = Model("")
+	m.Params.TIME_LIMIT = 600.0
 	##Creates the indicator variable for the model
 	for i in variablesAdjDic:
-		for bus in buses:
-			indicator_variables[(i, bus)] = m.addVar(vtype=GRB.BINARY, name='i' + str(bus)+ i)
+		for bus in range(buses):
+			indicator_variables[(i, bus)] = m.addVar(vtype=GRB.BINARY)
 	# ##Creates the integer variables
 	# for i in variablesAdjDic:
 	# 	integer_variables[i] = m.addVar(vtype=GRB.INTEGER, name=i)
 
 	##Create optimization func TODO
+	# print(indicator_variables)
 
-	m.setObjective(quicksum(float(quicksum(indicator_variables[i] for i in variablesAdjDic[variable]))/float(len(variablesAdjDic[variable]))\
-							for variable in variablesAdjDic), GRB.MAXIMIZE)
+	m.setObjective(quicksum(indicator_variables[(variable, bus)] * sum(indicator_variables[(i, bus)] for i in variablesAdjDic[variable])/float(len(variablesAdjDic[variable])) if len(variablesAdjDic[variable]) >= 1 else indicator_variables[(variable, bus)]
+							for variable, bus in indicator_variables), GRB.MAXIMIZE)
 
 	##Create the constraints
 
 	num = 0
 	for constraint in constraints:
 		num +=1
-		for bus in buses:
+		for bus in range(buses):
 			lst = []
 			for variable in constraint:
 				lst.append(indicator_variables[(variable, bus)])
-			m.addConstr(quicksum(lst[i] for i in range(len(lst))) < len(constraint), "c"+str(num)+str(bus)) #TODO: ADD ACTUAL CONSTRAINTS
+			m.addConstr(quicksum(lst[i] for i in range(len(lst))) <= len(constraint) - 1) #TODO: ADD ACTUAL CONSTRAINTS
 
 	##enforces that for all variables, they are only present in one bus
-
+	num = 0
 	for variable in variablesAdjDic:
+		num +=1
 		lst = []
-		for bus in buses:
-			lst.append(indicator_variables[(i,bus)])
-		m.addConstr(quicksum(lst[i] for i in range(len(lst))) == 1, "c"+str(variable))
+		for bus in range(buses):
+			lst.append(indicator_variables[(variable,bus)])
+		m.addConstr(quicksum(lst[i] for i in range(len(lst))) == 1)
 
-	for bus in buses:
+	for bus in range(buses):
 		lst = []
 		for variable in variablesAdjDic:
 			lst.append(indicator_variables[(variable, bus)])
-		m.addConstr(quicksum(lst[i] for i in range(len(lst))) <= bus_size, 'b' + str(bus))
+		m.addConstr(quicksum(lst[i] for i in range(len(lst))) <= bus_size)
 
 
 
@@ -118,54 +121,59 @@ def create_model(graph, buses, bus_size, constraints, variablesAdjDic):
 
 
 def solve(graph, num_buses, size_bus, constraints):
-    #TODO: Write this method as you like. We'd recommend changing the arguments here as well
+	#TODO: Write this method as you like. We'd recommend changing the arguments here as well
 
 	variablesAdjDic = create_variables(graph)
 	model, indicator_variables = create_model(graph, num_buses, size_bus, constraints, variablesAdjDic)
 	model.optimize()
 	solution = []
-	for bus in range(len(num_buses)):
+	for bus in range(num_buses):
 		solution.append([])
-
-	for variable_key, variable_item in indicator_variables.items():
-		if int(variable_item.x) == 1:
-			solution[variable_key[1]].append(variable_key[0])
+	# print(indicator_variables)
+	# for v in model.getVars():
+	# 	print(v.varName, v.x)
+	if model.status == GRB.Status.OPTIMAL:
+		for variable_key, variable_item in indicator_variables.items():
+			if variable_item.x == 1.0:
+				solution[variable_key[1]].append(variable_key[0])
 	return solution
 
 
 def main():
-    '''
-        Main method which iterates over all inputs and calls `solve` on each.
-        The student should modify `solve` to return their solution and modify
-        the portion which writes it to a file to make sure their output is
-        formatted correctly.
-    '''
-    size_categories = ["small", "medium", "large"]
-    if not os.path.isdir(path_to_outputs):
-        os.mkdir(path_to_outputs)
+	'''
+		Main method which iterates over all inputs and calls `solve` on each.
+		The student should modify `solve` to return their solution and modify
+		the portion which writes it to a file to make sure their output is
+		formatted correctly.
+	'''
+	size_categories = ["small", "medium", "large"]
+	if not os.path.isdir(path_to_outputs):
+		os.mkdir(path_to_outputs)
 
-    for size in size_categories:
-        category_path = path_to_inputs + "/" + size
-        output_category_path = path_to_outputs + "/" + size
-        category_dir = os.fsencode(category_path)
-        
-        if not os.path.isdir(output_category_path):
-            os.mkdir(output_category_path)
+	for size in size_categories:
+		category_path = path_to_inputs + "/" + size
+		output_category_path = path_to_outputs + "/" + size
+		category_dir = os.fsencode(category_path)
 
-        for input_folder in os.listdir(category_dir):
-            input_name = os.fsdecode(input_folder) 
-            graph, num_buses, size_bus, constraints = parse_input(category_path + "/" + input_name)
-            solution = solve(graph, num_buses, size_bus, constraints)
-            output_file = open(output_category_path + "/" + input_name + ".out", "w")
+		if not os.path.isdir(output_category_path):
+			os.mkdir(output_category_path)
 
-            #TODO: modify this to write your solution to your 
-            #      file properly as it might not be correct to 
-            #      just write the variable solution to a file
-            output_file.write(solution)
+		for input_folder in os.listdir(category_dir):
+			input_name = os.fsdecode(input_folder)
+			if input_name == ".DS_Store":
+				continue
+			graph, num_buses, size_bus, constraints = parse_input(category_path + "/" + input_name)
+			solution = solve(graph, num_buses, size_bus, constraints)
+			output_file = open(output_category_path + "/" + input_name + ".out", "w")
+			#TODO: modify this to write your solution to your
+			#      file properly as it might not be correct to
+			#      just write the variable solution to a file
+			for bus in solution:
+				output_file.write(str(bus)+ "\n")
 
-            output_file.close()
+			output_file.close()
 
 if __name__ == '__main__':
-    main()
+	main()
 
 
