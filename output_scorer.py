@@ -93,7 +93,7 @@ def score_output(input_folder, output_file):
     for edge in graph.edges():
         if bus_assignments[edge[0]] == bus_assignments[edge[1]]:
             score += 1
-    score = score / total_edges
+    score = float(score) / float(total_edges)
 
 
     return score, "Valid output submitted with score: {}".format(score)

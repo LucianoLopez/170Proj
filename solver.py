@@ -59,7 +59,7 @@ def create_variables(graph):
 def create_model(graph, buses, bus_size, constraints, variablesAdjDic):
 	indicator_variables = {}
 	m = Model("")
-	m.Params.TIME_LIMIT = 600.0
+	m.Params.TIME_LIMIT = 12*60
 	##Creates the indicator variable for the model
 	for i in variablesAdjDic:
 		for bus in range(buses):
@@ -100,6 +100,12 @@ def create_model(graph, buses, bus_size, constraints, variablesAdjDic):
 			lst.append(indicator_variables[(variable, bus)])
 		m.addConstr(quicksum(lst[i] for i in range(len(lst))) <= bus_size)
 
+	for bus in range(buses):
+		lst = []
+		for variable in variablesAdjDic:
+			lst.append(indicator_variables[(variable, bus)])
+		m.addConstr(quicksum(lst[i] for i in range(len(lst))) >= 1)
+
 
 
 	return m, indicator_variables
@@ -132,7 +138,7 @@ def solve(graph, num_buses, size_bus, constraints):
 	# print(indicator_variables)
 	# for v in model.getVars():
 	# 	print(v.varName, v.x)
-	if model.status == GRB.Status.OPTIMAL:
+	if model.status == GRB.Status.OPTIMAL or model.status == GRB.Status.TIME_LIMIT or model.status == GRB.Status.SUBOPTIMAL:
 		for variable_key, variable_item in indicator_variables.items():
 			if variable_item.x == 1.0:
 				solution[variable_key[1]].append(variable_key[0])
@@ -146,7 +152,7 @@ def main():
 		the portion which writes it to a file to make sure their output is
 		formatted correctly.
 	'''
-	size_categories = ["small", "medium", "large"]
+	size_categories = ["small"]
 	if not os.path.isdir(path_to_outputs):
 		os.mkdir(path_to_outputs)
 
